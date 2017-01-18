@@ -48,17 +48,19 @@ if(isset($_POST['runcmd'])){
 			if(!preg_match ("/\bProperties sorted not alphabetically?\b/", $content)){
 				if(preg_match ("/\bERROR?\b/", $content)){
 					if(!preg_match ("/\bFOUND?\b/", $content)){
+                        $error_line = '';
                         if(is_file($style_folder)){
                           $cl = explode('|',$content);
-                          $c_line = trim($cl[0]);
+                          $c_line = trim($cl[0])-1;
                           $lines = file($style_folder);//file in to an array
                           $error_line = trim($lines[$c_line]); //line 2
+                          $error_line = "<pre>$error_line</pre>";
                         }
 
 						if(preg_match ("/\bHexadecimal?\b/", $content) || preg_match ("/\bUnits specified?\b/", $content) || preg_match ("/\bquotes?\b/", $content) || preg_match ("/\buppercase symbols?\b/", $content) || preg_match ("/\buse hex?\b/", $content) || preg_match ("/\bId selector?\b/", $content) || preg_match ("/\bCSS colours?\b/", $content)){
-                          echo "<li class='list-group-item list-group-item-danger'>$content <pre>$error_line</pre></li>";
+                          echo "<li class='list-group-item list-group-item-danger'>$content $error_line $style_folder</li>";
 						}else{
-							echo "<li class='list-group-item list-group-item-warning'>$content <pre>$error_line</pre></li>";
+							echo "<li class='list-group-item list-group-item-warning'>$content $error_line $style_folder</li>";
 						}
 						
 					}
