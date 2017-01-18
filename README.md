@@ -1,2 +1,2 @@
 # cleanCode
-Clean  your Magento 2 Leass files. Code Sniffer installer and user friendly Error Viewer.
+Clean  your Magento 2 Less files. Code Sniffer installer and user friendly Error Viewer.
