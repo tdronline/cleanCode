@@ -1,27 +1,28 @@
 <?php
 include("conf.php");
 
-// Get New Files from Project Theme folder
+if(isset($_POST['refresh_files'])){
+	// Get New Files from Project Theme folder
 
-$di = new RecursiveDirectoryIterator(THEME,RecursiveDirectoryIterator::SKIP_DOTS);
-$it = new RecursiveIteratorIterator($di);
-file_put_contents(PROJECT . "/codepool/test-files.txt" ,'');
-foreach($it as $lessfile) {
-    if (pathinfo($lessfile, PATHINFO_EXTENSION) == "less") {
-		file_put_contents(PROJECT . "/codepool/test-files.txt", $lessfile."\r\n", FILE_APPEND | LOCK_EX);
-        // echo $file, PHP_EOL;
-    }
+	$di = new RecursiveDirectoryIterator(THEME,RecursiveDirectoryIterator::SKIP_DOTS);
+	$it = new RecursiveIteratorIterator($di);
+	file_put_contents(PROJECT . "/codepool/test-files.txt" ,'');
+	foreach($it as $lessfile) {
+		if (pathinfo($lessfile, PATHINFO_EXTENSION) == "less") {
+			file_put_contents(PROJECT . "/codepool/test-files.txt", $lessfile."\r\n", FILE_APPEND | LOCK_EX);
+			// echo $file, PHP_EOL;
+		}
+	}
+
+	//Format File
+	$file = file_get_contents(PROJECT . "/codepool/test-files.txt");
+	$file = str_replace(PROJECT . "/codepool/", '', $file);
+	$file = str_replace('"', '', $file);
+	$file = trim(str_replace('\\', '/', $file));
+
+	//Save Formatted File
+	file_put_contents(PROJECT."/codepool/dev/tests/static/testsuite/Magento/Test/Less/_files/changed_files.txt", $file);
 }
-
-
-//Format File
-$file = file_get_contents(PROJECT . "/codepool/test-files.txt");
-$file = str_replace(PROJECT . "/codepool/", '', $file);
-$file = str_replace('"', '', $file);
-$file = trim(str_replace('\\', '/', $file));
-
-//Save Formatted File
-file_put_contents(PROJECT."/codepool/dev/tests/static/testsuite/Magento/Test/Less/_files/changed_files.txt", $file);
 
 @$errors = file_get_contents(PROJECT . DIRECTORY_SEPARATOR . "codepool" . DIRECTORY_SEPARATOR . "dev" . DIRECTORY_SEPARATOR . "tests" . DIRECTORY_SEPARATOR . "static" . DIRECTORY_SEPARATOR . "report" . DIRECTORY_SEPARATOR . "less_report.txt");
 $contents = explode("\r\n", $errors);
@@ -54,7 +55,7 @@ if (isset($_POST['runcmd'])) {
 </head>
 <body>
 <div class="container" style="margin-top: 60px">
-    <nav class="navbar navbar-default navbar-fixed-top" style="display:none;">
+    <nav class="navbar navbar-default navbar-fixed-top">
         <div class="container">
             <div class="navbar-header">
                 <button type="button" class="navbar-toggle collapsed" data-toggle="collapse" data-target="#bs-example-navbar-collapse-1" aria-expanded="false">
@@ -70,7 +71,8 @@ if (isset($_POST['runcmd'])) {
 <!--                <li><a href="--><?php //echo $errors; ?><!--">Error File</a></li>-->
 <!--            </ul>-->
             <form method="post" class="pull-right">
-                <button type="submit" class="btn btn-primary navbar-btn" name="runcmd">Update Errors</button>
+				<button type="submit" class="btn btn-primary navbar-btn" name="refresh_files">Update LESS</button>
+                <!--<button type="submit" class="btn btn-primary navbar-btn" name="runcmd">Update Errors</button>-->
             </form>
         </div>
     </nav>
