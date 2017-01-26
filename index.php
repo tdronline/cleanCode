@@ -1,5 +1,28 @@
 <?php
 include("conf.php");
+
+// Get New Files from Project Theme folder
+
+$di = new RecursiveDirectoryIterator(THEME,RecursiveDirectoryIterator::SKIP_DOTS);
+$it = new RecursiveIteratorIterator($di);
+file_put_contents(PROJECT . "/codepool/test-files.txt" ,'');
+foreach($it as $lessfile) {
+    if (pathinfo($lessfile, PATHINFO_EXTENSION) == "less") {
+		file_put_contents(PROJECT . "/codepool/test-files.txt", $lessfile."\r\n", FILE_APPEND | LOCK_EX);
+        // echo $file, PHP_EOL;
+    }
+}
+
+
+//Format File
+$file = file_get_contents(PROJECT . "/codepool/test-files.txt");
+$file = str_replace(PROJECT . "/codepool/", '', $file);
+$file = str_replace('"', '', $file);
+$file = trim(str_replace('\\', '/', $file));
+
+//Save Formatted File
+file_put_contents(PROJECT."/codepool/dev/tests/static/testsuite/Magento/Test/Less/_files/changed_files.txt", $file);
+
 @$errors = file_get_contents(PROJECT . DIRECTORY_SEPARATOR . "codepool" . DIRECTORY_SEPARATOR . "dev" . DIRECTORY_SEPARATOR . "tests" . DIRECTORY_SEPARATOR . "static" . DIRECTORY_SEPARATOR . "report" . DIRECTORY_SEPARATOR . "less_report.txt");
 $contents = explode("\r\n", $errors);
 
@@ -31,7 +54,7 @@ if (isset($_POST['runcmd'])) {
 </head>
 <body>
 <div class="container" style="margin-top: 60px">
-    <nav class="navbar navbar-default navbar-fixed-top">
+    <nav class="navbar navbar-default navbar-fixed-top" style="display:none;">
         <div class="container">
             <div class="navbar-header">
                 <button type="button" class="navbar-toggle collapsed" data-toggle="collapse" data-target="#bs-example-navbar-collapse-1" aria-expanded="false">
@@ -54,15 +77,17 @@ if (isset($_POST['runcmd'])) {
 
     <ul class="list-group">
         <?php
+		$fi=1;
         foreach ($contents as $content) {
             if (preg_match("/\bFILE:?\b/", $content)) {
-                echo "<li class='list-group-item active'><span class='glyphicon glyphicon-file' aria-hidden='true'></span> $content</li>";
+                echo "<li class='list-group-item active'><span class='glyphicon glyphicon-file' aria-hidden='true'></span>[$fi] $content</li>";
                 $path = explode('web', $content);
                 $module =  explode('/', $path[0]);
                 $module = array_slice($module, 0, -1, true);
                 $module_name = end($module);
                 if($module_name == 'mattblatt'){$module_name = '/';}else{$module_name = "/$module_name/";}
                 $style_folder = THEME.$module_name. 'web' . $path[1];
+				$fi = $fi+1;
                 //print_r($module_name);
                 //$style_folder = THEME.$style_folder;
             }
@@ -87,7 +112,6 @@ if (isset($_POST['runcmd'])) {
 
                     }
                 }
-
             }
         }
         ?>
