@@ -3,7 +3,13 @@
 <?php 
 function formatTXT($savePath){
 	//Format File
-    $current_project = $_COOKIE['path'];
+    if(isset($_COOKIE['path'])){
+        $current_project = $_COOKIE['path'];
+    }else{
+        global $projectPath;
+        $current_project = $projectPath;
+    }
+
 	$file = file_get_contents("../temp-files.txt");
 	$file = str_replace($current_project.'/', '', $file);
 	$file = str_replace('"', '', $file);
@@ -15,7 +21,12 @@ function formatTXT($savePath){
 }
 
 function getNewLessFiles() {
-    $current_theme = $_COOKIE['theme'];
+    if(isset($_COOKIE['theme'])){
+        $current_theme = $_COOKIE['theme'];
+    }else{
+        global $themePath;
+        $current_theme = $themePath;
+    }
 
 	// Get New Files from Project Theme folder
 	$di = new RecursiveDirectoryIterator($current_theme,RecursiveDirectoryIterator::SKIP_DOTS);

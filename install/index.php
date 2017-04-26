@@ -1,5 +1,5 @@
 <?php
-if(is_file("../inc/conf.php")){header("Location: add-project.php");}
+if(is_file("../inc/conf.php") && isset($_COOKIE['project'])){header("Location: add-project.php");}
 if (isset($_POST['install'])) {
     $projectName = trim($_POST['project-name']);
     $projectPath = trim($_POST['project-path']);
@@ -12,6 +12,21 @@ if (isset($_POST['install'])) {
     file_put_contents("../inc/conf.php", "<?php 
     \$project[\"$projectName\"][\"path\"] = \"$projectPath\";
     \$project[\"$projectName\"][\"theme\"] = \"$themePath\";");
+
+    // Copy Pear Install script to PHP Folder
+    if(!is_dir($phpPath."/pear")) {
+        copy("../inc/go-pear.phar", "$phpPath./go-pear.phar");
+    }
+
+    //Rename and Copy XML to config folder
+    @rename("$projectPath/dev/tests/static/phpunit.xml.dist", "$projectPath/dev/tests/static/phpunit.xml.dist-original");
+    copy("../inc/phpunit.xml.dist", "$projectPath/dev/tests/static/phpunit.xml.dist");
+    file_put_contents("../run.bat", "php $projectPath/bin/magento dev:tests:run static");
+
+
+    // Clear Blacklist files
+    @file_put_contents("$projectPath/dev/tests/static/testsuite/Magento/Test/Less/_files/blacklist/old.txt", "");
+    @file_put_contents("$projectPath/dev/tests/static/testsuite/Magento/Test/Less/_files/blacklist/ee.txt", "");
 
     // Set Project as current
     setcookie("project", $projectName, time() + (86400 * 30), "/"); // 86400 = 1 day
@@ -27,22 +42,6 @@ if (isset($_POST['install'])) {
     // Format and Save file
     $savePath = $projectPath."/dev/tests/static/testsuite/Magento/Test/Less/_files/changed_files.txt";
     formatTXT($savePath);
-
-    // Copy Pear Install script to PHP Folder
-    if(!is_dir($phpPath."/pear")) {
-        copy("includes/go-pear.phar", "$phpPath./go-pear.phar");
-    }
-
-    //Rename and Copy XML to config folder
-    @rename("$projectPath/dev/tests/static/phpunit.xml.dist", "$projectPath/dev/tests/static/phpunit.xml.dist-original");
-    copy("../inc/phpunit.xml.dist", "$projectPath/dev/tests/static/phpunit.xml.dist");
-    file_put_contents("../run.bat", "php $projectPath/bin/magento dev:tests:run static");
-
-
-    // Clear Blacklist files
-    @file_put_contents("$projectPath/dev/tests/static/testsuite/Magento/Test/Less/_files/blacklist/old.txt", "");
-    @file_put_contents("$projectPath/dev/tests/static/testsuite/Magento/Test/Less/_files/blacklist/ee.txt", "");
-
 }
 ?>
 <!DOCTYPE html>
