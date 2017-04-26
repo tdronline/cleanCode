@@ -1,33 +1,20 @@
 <?php
-include("conf.php");
-
-if(isset($_POST['refresh_files'])){
-	// Get New Files from Project Theme folder
-
-	$di = new RecursiveDirectoryIterator(THEME,RecursiveDirectoryIterator::SKIP_DOTS);
-	$it = new RecursiveIteratorIterator($di);
-	file_put_contents(PROJECT . "/codepool/test-files.txt" ,'');
-	foreach($it as $lessfile) {
-		if (pathinfo($lessfile, PATHINFO_EXTENSION) == "less") {
-			file_put_contents(PROJECT . "/codepool/test-files.txt", $lessfile."\r\n", FILE_APPEND | LOCK_EX);
-			// echo $file, PHP_EOL;
-		}
-	}
-
-	//Format File
-	$file = file_get_contents(PROJECT . "/codepool/test-files.txt");
-	$file = str_replace(PROJECT . "/codepool/", '', $file);
-	$file = str_replace('"', '', $file);
-	$file = trim(str_replace('\\', '/', $file));
-
-	//Save Formatted File
-	file_put_contents(PROJECT."/codepool/dev/tests/static/testsuite/Magento/Test/Less/_files/changed_files.txt", $file);
+// Redirect to install if Configuration is not there.
+if (!is_file("inc/conf.php")) {
+    header("Location: install");
 }
 
-@$errors = file_get_contents(PROJECT . DIRECTORY_SEPARATOR . "codepool" . DIRECTORY_SEPARATOR . "dev" . DIRECTORY_SEPARATOR . "tests" . DIRECTORY_SEPARATOR . "static" . DIRECTORY_SEPARATOR . "report" . DIRECTORY_SEPARATOR . "less_report.txt");
-$contents = explode("\r\n", $errors);
 
-//TODO we need to see how we can run this command from the page it self currently it doesnt work
+// Include Functions
+include("inc/functions.php");
+//Read Report File
+$reportFile = $_COOKIE['path'] . "/dev/tests/static/report/less_report.txt";
+if (is_file($reportFile)) {
+    $errors = file_get_contents($reportFile);
+    $contents = explode("\r\n", $errors);
+}
+
+// TODO we need to see how we can run this command from the page it self currently it doesnt work
 if (isset($_POST['runcmd'])) {
     $cmd = "php " . PROJECT . "/codepool/bin/magento dev:tests:run static";
     pclose(popen("start /B " . $cmd, "r"));
@@ -52,72 +39,143 @@ if (isset($_POST['runcmd'])) {
     <script src="https://oss.maxcdn.com/html5shiv/3.7.3/html5shiv.min.js"></script>
     <script src="https://oss.maxcdn.com/respond/1.4.2/respond.min.js"></script>
     <![endif]-->
+    <style type="text/css">
+        * {
+            border-radius: 0 !important;
+        }
+
+        .error-line {
+            display: block;
+            font-weight: bold;
+            margin-bottom: 5px;
+        }
+
+        .less-error {
+            display: inline-block;
+            padding: 5px 0;
+            margin-right: 20px;
+            min-width: 250px;
+        }
+
+        .less-correct {
+            display: inline-block;
+            color: #4CAF50;
+            background-color: #fff;
+            padding: 5px;
+        }
+        .project li{
+            cursor: pointer;
+            padding: 0 10px;
+        }
+    </style>
 </head>
 <body>
 <div class="container" style="margin-top: 60px">
     <nav class="navbar navbar-default navbar-fixed-top">
         <div class="container">
             <div class="navbar-header">
-                <button type="button" class="navbar-toggle collapsed" data-toggle="collapse" data-target="#bs-example-navbar-collapse-1" aria-expanded="false">
+                <button type="button" class="navbar-toggle collapsed" data-toggle="collapse"
+                        data-target="#bs-example-navbar-collapse-1" aria-expanded="false">
                     <span class="sr-only">Toggle navigation</span>
                     <span class="icon-bar"></span>
                     <span class="icon-bar"></span>
                     <span class="icon-bar"></span>
                 </button>
-                <a class="navbar-brand" href="#">LESSerrors</a>
+                <a class="navbar-brand" href="#">MAGerrors</a>
             </div>
-<!--            <ul class="nav navbar-nav">-->
-<!--                <li class="active"><a href="#">Link <span class="sr-only">(current)</span></a></li>-->
-<!--                <li><a href="--><?php //echo $errors; ?><!--">Error File</a></li>-->
-<!--            </ul>-->
-            <form method="post" class="pull-right">
-				<button type="submit" class="btn btn-primary navbar-btn" name="refresh_files">Update LESS</button>
-                <!--<button type="submit" class="btn btn-primary navbar-btn" name="runcmd">Update Errors</button>-->
-            </form>
+            <ul class="nav navbar-nav navbar-right">
+                <li><a href="#" id="refresh_files">Update LESS</a></li>
+                <li><a href="install/add-project.php">Add Project</a></li>
+                <li class="dropdown">
+                    <a id="dLabel" type="button" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+                        Select Project
+                        <span class="caret"></span>
+                    </a>
+                    <ul class="dropdown-menu project" aria-labelledby="dLabel">
+                        <?php foreach ($project as $pr => $p_name) {
+                            echo "<li title='$pr'>$pr</li>";
+                        } ?>
+                    </ul>
+                </li>
+            </ul>
         </div>
     </nav>
-
+    <?php if (isset($_COOKIE['project'])) {
+        echo "<h2>LESS Report of {$_COOKIE['project']}</h2>";
+    } ?>
     <ul class="list-group">
         <?php
-		$fi=1;
-        foreach ($contents as $content) {
-            if (preg_match("/\bFILE:?\b/", $content)) {
-                echo "<li class='list-group-item active'><span class='glyphicon glyphicon-file' aria-hidden='true'></span>[$fi] $content</li>";
-                $path = explode('web', $content);
-                $module =  explode('/', $path[0]);
-                $module = array_slice($module, 0, -1, true);
-                $module_name = end($module);
-                if($module_name == 'mattblatt'){$module_name = '/';}else{$module_name = "/$module_name/";}
-                $style_folder = THEME.$module_name. 'web' . $path[1];
-				$fi = $fi+1;
-                //print_r($module_name);
-                //$style_folder = THEME.$style_folder;
-            }
+        if (is_file($reportFile)) {
+            $fi = 1;
+            foreach ($contents as $content) {
+                if (preg_match("/\bFILE:?\b/", $content)) {
+                    $fi = $fi + 1;
+                    echo "<li class='list-group-item active' data-toggle='itm_$fi'><span class='glyphicon glyphicon-file' aria-hidden='true'></span> [$fi] $content <span class='glyphicon glyphicon-chevron-up pull-right' aria-hidden='true'></span></li>";
+                    $path = explode('web', $content);
+                    $module = explode('/', $path[0]);
+                    $module = array_slice($module, 0, -1, true);
+                    $module_name = end($module);
+                    $themefolder = explode('/',$_COOKIE['theme']);
+                    $folder_name = end($themefolder);
+                    if ($module_name == $folder_name) {
+                        $module_name = '/';
+                    } else {
+                        $module_name = "/$module_name/";
+                    }
+                    $style_folder = $_COOKIE['theme'] . $module_name . 'web' . $path[1];
+                }
 
-            if (!preg_match("/\bProperties sorted not alphabetically?\b/", $content)) {
-                if (preg_match("/\bERROR?\b/", $content)) {
-                    if (!preg_match("/\bFOUND?\b/", $content)) {
-                        $error_line = '';
-                        if (is_file($style_folder)) {
-                            $cl = explode('|', $content);
-                            $c_line = trim($cl[0]) - 1;
-                            $lines = file($style_folder);//file in to an array
-                            $error_line = trim($lines[$c_line]); //line 2
-                            $error_line = "<pre>$error_line</pre>";
-                        }
+                if (!preg_match("/\bProperties sorted not alphabetically?\b/", $content)) {
+                    if (preg_match("/\b \| ERROR \| ?\b/", $content)) {
+
+                        //Error Correction
+                        $errorFix = errorSuggession($style_folder, $content);
+                        $errorReported = "<div class='error-line'>$content</div>";
 
                         if (preg_match("/\bHexadecimal?\b/", $content) || preg_match("/\bUnits specified?\b/", $content) || preg_match("/\bquotes?\b/", $content) || preg_match("/\buppercase symbols?\b/", $content) || preg_match("/\buse hex?\b/", $content) || preg_match("/\bId selector?\b/", $content) || preg_match("/\bCSS colours?\b/", $content)) {
-                            echo "<li class='list-group-item list-group-item-danger'>$content $error_line $style_folder</li>";
+                            echo "<li class='list-group-item list-group-item-danger itm_$fi'>$errorReported $errorFix</li>";
                         } else {
-                            echo "<li class='list-group-item list-group-item-warning'>$content $error_line $style_folder</li>";
+                            echo "<li class='list-group-item list-group-item-warning itm_$fi'>$errorReported $errorFix</li>";
                         }
-
                     }
                 }
             }
+        } else {
+            echo "<div class='alert alert-danger' role='alert'>Report Not Generated.</div>";
         }
         ?>
     </ul>
     <script src="https://ajax.googleapis.com/ajax/libs/jquery/1.12.4/jquery.min.js"></script>
+    <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/js/bootstrap.min.js"
+            integrity="sha384-Tc5IQib027qvyjSMfHjOMaLkfuWVxZxUPnCJA7l2mCWNIpG9mGCD8wGNIcPD7Txa"
+            crossorigin="anonymous"></script>
+    <script type="text/javascript">
+        // Fold content
+        $('.active').click(function () {
+            cls = $(this).attr("data-toggle");
+            $("." + cls).slideToggle();
+        });
+        // Drop down
+        $('.dropdown-toggle').dropdown();
+
+        // AJAX calls
+        $(".project li").click(function () {
+            var project = $(this).attr('title');
+            $.post("inc/ajax.php", {fn: "select_project", project: project})
+                .done(function (data) {
+                    //alert( "Data Loaded: " + data );
+                    location.reload();
+                });
+        });
+
+        // AJAX refresh Files
+        $("#refresh_files").click(function () {
+            $.post("inc/ajax.php", {fn: "refresh_less"})
+                .done(function (data) {
+                    alert(data)
+                });
+        });
+
+    </script>
 </body>
 </html>
