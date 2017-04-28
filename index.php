@@ -7,12 +7,6 @@ if (!is_file("inc/conf.php")) {
 
 // Include Functions
 include("inc/functions.php");
-//Read Report File
-$reportFile = $_COOKIE['path'] . "/dev/tests/static/report/less_report.txt";
-if (is_file($reportFile)) {
-    $errors = file_get_contents($reportFile);
-    $contents = explode("\r\n", $errors);
-}
 
 // TODO we need to see how we can run this command from the page it self currently it doesnt work
 if (isset($_POST['runcmd'])) {
@@ -44,28 +38,74 @@ if (isset($_POST['runcmd'])) {
             border-radius: 0 !important;
         }
 
-        .error-line {
-            display: block;
-            font-weight: bold;
-            margin-bottom: 5px;
-        }
-
         .less-error {
+            font-size: 12px;
             display: inline-block;
             padding: 5px 0;
             margin-right: 20px;
+            text-shadow: 1px 1px 1px #ccc;
             min-width: 250px;
         }
 
         .less-correct {
+            font-size: 12px;
             display: inline-block;
-            color: #4CAF50;
-            background-color: #fff;
+            color: #689f38;
+            text-shadow: 1px 1px 1px #ccc;
             padding: 5px;
         }
-        .project li{
+
+        .error {
+            margin-bottom: 6px;
+            padding-bottom: 10px;
+            border-bottom: 1px dashed #bbb;
+        }
+
+        .project li {
             cursor: pointer;
             padding: 0 10px;
+        }
+        .panel-group .pan-title-con{
+            padding: 10px 20px;
+            display: block;
+            width: 100%;
+            font-weight: bold;
+        }
+        .panel-group .panel-heading {
+            padding: 0;
+        }
+        .list-group-item-danger {
+            border: 1px solid #900b0b;
+        }
+        .nerror {
+            color: #8a6d3b;
+            margin-left: 15px;
+        }
+        .navbar-brand {
+            padding: 0 20px;
+        }
+        .navbar-default {
+            background: #fff;
+            border-color: #294a77;
+        }
+        .project-link {
+            cursor: pointer;
+            color: #000;
+        }
+        .project-info h2{
+            margin-top: 0;
+        }
+        .project-info p{
+            font-size: 12px;
+            color: #888;
+            margin-bottom: 0;
+        }
+        footer {
+            border-top:1px solid #e0e0e0;
+            text-align: center;
+            padding: 10px 0;
+            color: #9e9e9e;
+            font-size: 11px;
         }
     </style>
 </head>
@@ -81,13 +121,13 @@ if (isset($_POST['runcmd'])) {
                     <span class="icon-bar"></span>
                     <span class="icon-bar"></span>
                 </button>
-                <a class="navbar-brand" href="#">MAGerrors</a>
+                <a class="navbar-brand" href="#"><img src="img/mag-less-cci.png" alt="mage-less" /></a>
             </div>
             <ul class="nav navbar-nav navbar-right">
                 <li><a href="#" id="refresh_files">Update LESS</a></li>
                 <li><a href="install/add-project.php">Add Project</a></li>
                 <li class="dropdown">
-                    <a id="dLabel" type="button" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+                    <a id="dLabel" type="button" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false" class="project-link">
                         Select Project
                         <span class="caret"></span>
                     </a>
@@ -100,51 +140,18 @@ if (isset($_POST['runcmd'])) {
             </ul>
         </div>
     </nav>
-    <?php if (isset($_COOKIE['project'])) {
-        echo "<h2>LESS Report of {$_COOKIE['project']}</h2>";
-    } ?>
-    <ul class="list-group">
-        <?php
-        if (is_file($reportFile)) {
-            $fi = 1;
-            foreach ($contents as $content) {
-                if (preg_match("/\bFILE:?\b/", $content)) {
-                    $fi = $fi + 1;
-                    echo "<li class='list-group-item active' data-toggle='itm_$fi'><span class='glyphicon glyphicon-file' aria-hidden='true'></span> [$fi] $content <span class='glyphicon glyphicon-chevron-up pull-right' aria-hidden='true'></span></li>";
-                    $path = explode('web', $content);
-                    $module = explode('/', $path[0]);
-                    $module = array_slice($module, 0, -1, true);
-                    $module_name = end($module);
-                    $themefolder = explode('/',$_COOKIE['theme']);
-                    $folder_name = end($themefolder);
-                    if ($module_name == $folder_name) {
-                        $module_name = '/';
-                    } else {
-                        $module_name = "/$module_name/";
-                    }
-                    $style_folder = $_COOKIE['theme'] . $module_name . 'web' . $path[1];
-                }
+    <?php
+    if (isset($_COOKIE['project'])) {
+        echo "<div class='well project-info'> <h2>LESS Report of {$_COOKIE['project']}</h2><p>Click to expand.</p></div>";
 
-                if (!preg_match("/\bProperties sorted not alphabetically?\b/", $content)) {
-                    if (preg_match("/\b \| ERROR \| ?\b/", $content)) {
-
-                        //Error Correction
-                        $errorFix = errorSuggession($style_folder, $content);
-                        $errorReported = "<div class='error-line'>$content</div>";
-
-                        if (preg_match("/\bHexadecimal?\b/", $content) || preg_match("/\bUnits specified?\b/", $content) || preg_match("/\bquotes?\b/", $content) || preg_match("/\buppercase symbols?\b/", $content) || preg_match("/\buse hex?\b/", $content) || preg_match("/\bId selector?\b/", $content) || preg_match("/\bCSS colours?\b/", $content)) {
-                            echo "<li class='list-group-item list-group-item-danger itm_$fi'>$errorReported $errorFix</li>";
-                        } else {
-                            echo "<li class='list-group-item list-group-item-warning itm_$fi'>$errorReported $errorFix</li>";
-                        }
-                    }
-                }
-            }
-        } else {
-            echo "<div class='alert alert-danger' role='alert'>Report Not Generated.</div>";
-        }
-        ?>
-    </ul>
+        //Read Report File
+        $reportFile = $_COOKIE['path'] . "/dev/tests/static/report/less_report.txt";
+        displayReport($reportFile);
+    }
+    ?>
+    <footer>
+        <p>Copyright TDr&copy; <?php echo date("Y"); ?></p>
+    </footer>
     <script src="https://ajax.googleapis.com/ajax/libs/jquery/1.12.4/jquery.min.js"></script>
     <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/js/bootstrap.min.js"
             integrity="sha384-Tc5IQib027qvyjSMfHjOMaLkfuWVxZxUPnCJA7l2mCWNIpG9mGCD8wGNIcPD7Txa"
