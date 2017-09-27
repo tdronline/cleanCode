@@ -118,7 +118,10 @@ if (isset($_POST['runcmd'])) {
             $("#run_sniffer").html("RUNNING!!!");
             $.post("inc/ajax.php", {fn: "code_sniffer"})
                 .done(function (data) {
-                    alert(data)
+                    alert(data);
+                    if (data == 'Success'){
+                        $("#run_sniffer").html("Run Sniffer");
+                    }
                 });
         });
 
