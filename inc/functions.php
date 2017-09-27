@@ -49,6 +49,7 @@ function errorSuggestion($themeFile, $content)
     $c_line = trim($cl[0]) - 1;
     $error_line = trim($lessFile[$c_line]); //line 2
     $error_fix = '';
+    $action = '';
     $less_error_line = "<div class='less-error'><span class='glyphicon glyphicon-exclamation-sign' aria-hidden='true'></span> $error_line</div>";
 
 
@@ -73,9 +74,12 @@ function errorSuggestion($themeFile, $content)
     }
     if (preg_match("/\bnewline character?\b/", $content)) {
         $error_fix = "<div class='less-correct'><span class='glyphicon glyphicon-ok-sign' aria-hidden='true'></span> Keep a blank line below code</div>";
+        $action = 'new-line';
     }
 
-    return $less_error_line . $error_fix;
+    $resolve = resolveButton($c_line, $themeFile, $action);
+
+    return $less_error_line . $error_fix . $resolve;
 }
 
 function displayReport($reportFile)
@@ -83,6 +87,7 @@ function displayReport($reportFile)
     if (is_file($reportFile)) {
         $errors = file_get_contents($reportFile);
         $contents = explode("\r\n", $errors);
+        $contents = array_slice($contents, 0, 1000);
 
         // Iterate through each Line
         foreach ($contents as $content) {
@@ -127,7 +132,7 @@ function displayReport($reportFile)
 
             if ($criticalCount > 0) {
                 $panClass = 'panel-danger';
-                $cCount = "<span class='pull-right'><span class='glyphicon glyphicon-exclamation-sign' aria-hidden='true'></span> $criticalCount</span>";
+                $cCount = "<span class='pull-right cerror'><span class='glyphicon glyphicon-exclamation-sign' aria-hidden='true'></span> $criticalCount</span>";
             } else {
                 $panClass = '';
                 $cCount = "";
@@ -139,12 +144,18 @@ function displayReport($reportFile)
                 $nCount = "";
             }
 
+            $lessLink = base64_encode($lessFile);
+
+            $fixLink = "<a href='fixes.php?file=$lessLink' class='fix-btn btn btn-xs btn-warning' data-toggle='modal' data-target='.fixErrorModal'>Fix Errors</a>";
+
             echo "<div class='panel panel-default $panClass'>
             <div class='panel-heading' role='tab' id='heading_$i'>
                 <h4 class='panel-title'>
-                    <div class='pan-title-con' role='button' data-toggle='collapse' data-parent='#accordion' href='#collaps_$i' aria-expanded='true' aria-controls='collaps_$i'>
+                    <div class='pan-title-con'>
+                        <span class='glyphicon collapsed expand' role='button' data-toggle='collapse' data-parent='#accordion' href='#collaps_$i' aria-expanded='true' aria-controls='collaps_$i'></span>
+                        $fixLink
                        <span class='glyphicon glyphicon-file' aria-hidden='true'></span>
-                       $lessFile  $nCount   $cCount                   
+                       $lessFile  $nCount   $cCount              
                     </div>
                 </h4>
             </div>
@@ -189,13 +200,91 @@ function displayReport($reportFile)
 
 function getLessFile($themeFile)
 {
-    $themeFolder = explode('/', $_COOKIE['theme']);
-    $themeName = end($themeFolder);
-    $themeFile = str_replace($themeName, '', $themeFile);
-    $lessFilePath = $_COOKIE['theme'] . $themeFile;
+    $lessFilePath = getfilePath($themeFile);
     $lessFile = file($lessFilePath);
     return $lessFile;
 }
 
-?>
+function getfilePath($themeFile)
+{
+    $themeFolder = explode('/', $_COOKIE['theme']);
+    $themeName = end($themeFolder);
+    $themeFile = str_replace($themeName, '', $themeFile);
+    $lessFilePath = $_COOKIE['theme'] . $themeFile;
+    return $lessFilePath;
+}
 
+function getLessErrorLine($themeFile, $line)
+{
+    $lessFileLine = getLessFile($themeFile);
+    $error_line = trim($lessFileLine[$line]);
+    return $error_line;
+}
+
+function resolveButton($line, $lessFile, $action)
+{
+    if (!empty($action) && !empty($line) && !empty($lessFile)) {
+        return "<div class='btn btn-warning btn-xs pull-right resolve-btn' property='$lessFile' rel='$line' resource='$action'>Resolve</div>";
+    }
+}
+
+function fixLESS($CodeLine)
+{
+    $Codeline = trim($CodeLine);
+    // Remove Double Quotes
+    if (substr_count($Codeline, '"') > 0) {
+        $Codeline = str_replace('"', '\'', $Codeline);
+    }// ------------
+
+    // Fix comment spacing
+    if ((strpos(trim($Codeline), '//') === 0) && (substr(trim($Codeline), 0, 3) != '//  ')) {
+        $tempString = substr($Codeline, 2);
+        $tempString = '//  ' . $tempString;
+
+        // Add a line break to last comment line
+        $tempString = trim($tempString);
+        if (substr_count($tempString, '-') > 30) {
+            $tempString = $tempString . "\r\n";
+        }
+        $Codeline =  $tempString;
+    } // -----------
+
+    $css = cssProp($Codeline);
+    if (!empty($css)) {
+        @$prop = trim($css[0]);
+        @$val = trim($css[1]);
+
+        // Remove 0px
+        if (strpos($val, ' 0px') !== FALSE) {
+            $val = str_replace(' 0px', ' 0', $val);
+            $Codeline = "$prop: $val";
+        } // -----------
+
+        // Add .lib-css()
+        if ((substr_count($prop, '//') == 0) && (substr_count($val, '//') == 0) && (substr_count($val, '@') > 0) && (substr_count($prop, '@') == 0)) {
+            $val = str_replace(";", '', $val);
+            if ($prop != 'background' || $prop != 'filter') {
+                $Codeline = ".lib-css(" . $prop . ", " . $val . ");";
+            }
+        }
+    }
+
+
+    if (!empty($Codeline) && !hash_equals($Codeline, trim($CodeLine))) {
+        return $Codeline;
+    }
+}
+
+// Fixes
+function cssProp($Codeline)
+{
+    // Break CSS to value and property =============
+    if ((substr_count($Codeline, ':') == 1)) {
+        $css = explode(":", $Codeline);
+        if (count($css) === 2) {
+            return $css;
+        }
+    }
+}
+
+?>

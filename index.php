@@ -10,9 +10,10 @@ include("inc/functions.php");
 
 // TODO we need to see how we can run this command from the page it self currently it doesnt work
 if (isset($_POST['runcmd'])) {
-    $cmd = "php " . PROJECT . "/codepool/bin/magento dev:tests:run static";
-    pclose(popen("start /B " . $cmd, "r"));
-    if (exec($cmd)) {
+    $cmd = "php -f "  . $_COOKIE['path'] . "/bin/magento dev:tests:run static";
+    echo $cmd;
+
+    if (exec("$cmd")) {
         echo "Succss";
     }
 }
@@ -28,86 +29,11 @@ if (isset($_POST['runcmd'])) {
 
     <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css"
           integrity="sha384-BVYiiSIFeK1dGmJRAkycuHAHRg32OmUcww7on3RYdg4Va+PmSTsz/K68vbdEjh4u" crossorigin="anonymous">
-
+    <link rel="stylesheet" href="css/default.css">
     <!--[if lt IE 9]>
     <script src="https://oss.maxcdn.com/html5shiv/3.7.3/html5shiv.min.js"></script>
     <script src="https://oss.maxcdn.com/respond/1.4.2/respond.min.js"></script>
     <![endif]-->
-    <style type="text/css">
-        * {
-            border-radius: 0 !important;
-        }
-
-        .less-error {
-            font-size: 12px;
-            display: inline-block;
-            padding: 5px 0;
-            margin-right: 20px;
-            text-shadow: 1px 1px 1px #ccc;
-            min-width: 250px;
-        }
-
-        .less-correct {
-            font-size: 12px;
-            display: inline-block;
-            color: #689f38;
-            text-shadow: 1px 1px 1px #ccc;
-            padding: 5px;
-        }
-
-        .error {
-            margin-bottom: 6px;
-            padding-bottom: 10px;
-            border-bottom: 1px dashed #bbb;
-        }
-
-        .project li {
-            cursor: pointer;
-            padding: 0 10px;
-        }
-        .panel-group .pan-title-con{
-            padding: 10px 20px;
-            display: block;
-            width: 100%;
-            font-weight: bold;
-        }
-        .panel-group .panel-heading {
-            padding: 0;
-        }
-        .list-group-item-danger {
-            border: 1px solid #900b0b;
-        }
-        .nerror {
-            color: #8a6d3b;
-            margin-left: 15px;
-        }
-        .navbar-brand {
-            padding: 0 20px;
-        }
-        .navbar-default {
-            background: #fff;
-            border-color: #294a77;
-        }
-        .project-link {
-            cursor: pointer;
-            color: #000;
-        }
-        .project-info h2{
-            margin-top: 0;
-        }
-        .project-info p{
-            font-size: 12px;
-            color: #888;
-            margin-bottom: 0;
-        }
-        footer {
-            border-top:1px solid #e0e0e0;
-            text-align: center;
-            padding: 10px 0;
-            color: #9e9e9e;
-            font-size: 11px;
-        }
-    </style>
 </head>
 <body>
 <div class="container" style="margin-top: 60px">
@@ -137,6 +63,7 @@ if (isset($_POST['runcmd'])) {
                         } ?>
                     </ul>
                 </li>
+                <li><a href="#" id="run_sniffer">Run Sniffer</a></li>
             </ul>
         </div>
     </nav>
@@ -149,6 +76,14 @@ if (isset($_POST['runcmd'])) {
         displayReport($reportFile);
     }
     ?>
+    <!-- Modal -->
+    <div class="modal fade fixErrorModal" id="fixErrors" tabindex="-1" role="dialog" aria-labelledby="myLargeModalLabel">
+        <div class="modal-dialog modal-lg" role="document">
+            <div class="modal-content">
+                <img src="img/loader.gif" class="loader" />
+            </div>
+        </div>
+    </div>
     <footer>
         <p>Copyright TDr&copy; <?php echo date("Y"); ?></p>
     </footer>
@@ -157,11 +92,6 @@ if (isset($_POST['runcmd'])) {
             integrity="sha384-Tc5IQib027qvyjSMfHjOMaLkfuWVxZxUPnCJA7l2mCWNIpG9mGCD8wGNIcPD7Txa"
             crossorigin="anonymous"></script>
     <script type="text/javascript">
-        // Fold content
-        $('.active').click(function () {
-            cls = $(this).attr("data-toggle");
-            $("." + cls).slideToggle();
-        });
         // Drop down
         $('.dropdown-toggle').dropdown();
 
@@ -181,6 +111,40 @@ if (isset($_POST['runcmd'])) {
                 .done(function (data) {
                     alert(data)
                 });
+        });
+
+        // AJAX run CodeSniffer
+        $("#run_sniffer").click(function () {
+            $("#run_sniffer").html("RUNNING!!!");
+            $.post("inc/ajax.php", {fn: "code_sniffer"})
+                .done(function (data) {
+                    alert(data)
+                });
+        });
+
+        // AJAX save Less File
+        $(".modal-content").on('click','#save_less',function() {
+            var lessfile = $("#lessfile").html();
+            $.post("inc/ajax.php", {fn: "save_file", file: lessfile})
+                .done(function (data) {
+                    alert(data);
+                });
+        });
+
+
+        // AJAX add new line LESS
+        $(".resolve-btn").click(function () {
+            var line = $(this).attr('rel');
+            var lessfile = $(this).attr('property');
+            $.post("inc/ajax.php", {fn: "resolve-error", line: line, less: lessfile})
+                .done(function (data) {
+                    alert(data);
+                });
+        });
+
+        $(".fix-btn").click(function(){
+            var link = $(this).attr('href');
+            $(".modal-content").load(link);
         });
 
     </script>

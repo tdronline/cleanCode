@@ -96,6 +96,7 @@ if (isset($_POST['install'])) {
         <p>Run below command from your PHP folder. Run Command Prompt as Administrator and navigate to your PHP folder before running the command. Follow instructions in command prompt and install Pear as system.</p>
         <pre>php go-pear.phar</pre>
         <p>Run the Registry key "PEAR_ENV.reg" created in php folder to set env-vars.</p>
+
         <?php }
         if(!is_dir($phpPath."/pear/PHP/CodeSniffer")) {?>
         <p>Now Run below command to install Code Sniffer</p>
@@ -103,9 +104,7 @@ if (isset($_POST['install'])) {
         <?php } ?>
         <p>Download the run.bat File from below link and run it after Codes Sniffer installation. You have to run this after each correction to your Less source files to update the Magento Less Report.</p>
         <p>Click View Report to View your Report.</p>
-        <a href="../run.bat" class="btn btn-primary btn-xs">Get Bat File</a> <a href="../"
-                                                                                class="btn btn-success btn-xs">View
-            Report</a>
+        <a href="../"  class="btn btn-success btn-xs">View Report</a>
     <?php } ?>
 </div>
 <!-- jQuery (necessary for Bootstrap's JavaScript plugins) -->
