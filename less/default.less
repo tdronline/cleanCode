@@ -34,6 +34,8 @@ a,
 }
 
 .project {
+    padding: 0;
+
     li {
         cursor: pointer;
         padding: 5px 10px;
@@ -65,6 +67,7 @@ a,
 .other-errors {
     cursor: pointer;
     position: relative;
+    background-color: #ded7b0;
 
     strong {
         padding-left: 20px;
@@ -174,8 +177,16 @@ a,
 
 .loader {
     position: absolute;
-    top: calc(50% - 37px);
-    left: calc(50% - 56px);
+    top: 48%;
+    left: 48%;
+}
+
+.loader-wrap {
+    position: absolute;
+    top: 30%;
+    left: 0;
+    right: 0;
+    text-align: center;
 }
 
 #fix_only {

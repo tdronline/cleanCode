@@ -248,12 +248,13 @@ function fixLESS($CodeLine)
     }// ------------
 
     // Fix comment spacing
-    if ((strpos(trim($Codeline), '//') === 0) && (substr(trim($Codeline), 0, 3) != '//  ')) {
-        $tempString = substr($Codeline, 2);
-        $tempString = '// ' . $tempString;
-
-        // Add a line break to last comment line
+    if ((strpos(trim($Codeline), '//') === 0)) {
+        $tempString = str_replace('/','', $Codeline);
+        if(!is_null($tempString)) {
+            $tempString = '//  ' . trim($tempString);
+        }
         $tempString = trim($tempString);
+        // Add a line break to last comment line
         if (substr_count($tempString, '-') > 30) {
             $tempString = $tempString . "\r\n";
         }
@@ -308,7 +309,7 @@ function fixLESS($CodeLine)
     }
 
 
-    if (!empty($Codeline) && !hash_equals($Codeline, trim($CodeLine))) {
+    if ((!empty($Codeline) && !hash_equals(trim($Codeline), $CodeLine))) {
         return $Codeline;
     }
 }

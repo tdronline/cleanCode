@@ -88,9 +88,7 @@ if (isset($_POST['runcmd'])) {
         <p>Copyright TDr&copy; <?php echo date("Y"); ?></p>
     </footer>
     <script src="https://ajax.googleapis.com/ajax/libs/jquery/1.12.4/jquery.min.js"></script>
-    <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/js/bootstrap.min.js"
-            integrity="sha384-Tc5IQib027qvyjSMfHjOMaLkfuWVxZxUPnCJA7l2mCWNIpG9mGCD8wGNIcPD7Txa"
-            crossorigin="anonymous"></script>
+    <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/js/bootstrap.min.js" integrity="sha384-Tc5IQib027qvyjSMfHjOMaLkfuWVxZxUPnCJA7l2mCWNIpG9mGCD8wGNIcPD7Txa"             crossorigin="anonymous"></script>
     <script type="text/javascript">
         // Drop down
         $('.dropdown-toggle').dropdown();
@@ -116,18 +114,20 @@ if (isset($_POST['runcmd'])) {
         // AJAX run CodeSniffer
         $("#run_sniffer").click(function () {
             $("#run_sniffer").html("RUNNING!!!");
-            $(".modal-content").html("<img src='img/loader.gif' class='loader' />");
+            $(".modal-content").html("<div class='loader-wrap'><h3>Running...</h3> <img src='img/loader.gif' /></div>");
             $('#fixErrors').modal('show');
             $.post("inc/ajax.php", {fn: "code_sniffer"})
                 .done(function (data) {
-                    alert(data);
-                    $(".modal-content").fadeOut(
+                    $(".loader-wrap").fadeOut(
                         function(){
-                            $(".modal-content").html("<h2>Successfully Complete</h2><div class='btn btn-success' id='sniffer-ok'>Reload Page</div>").fadeIn();
+                            $(".modal-content").html("<div class='loader-wrap'><h2>Successfully Complete</h2><div class='btn btn-success' id='sniffer-ok'>Reload Page</div></div>").fadeIn();
                         });
                     $("#run_sniffer").html("Run Sniffer");
-                    location.reload();
                 });
+        });
+
+        $('.modal-content').on('click','#sniffer-ok', function(){
+            location.reload();
         });
 
         // AJAX save Less File
