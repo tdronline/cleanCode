@@ -53,7 +53,9 @@ function errorSuggestion($themeFile, $content)
     $less_error_line = "<div class='less-error'><span class='glyphicon glyphicon-exclamation-sign' aria-hidden='true'></span> $error_line</div>";
 
 
-    if (preg_match("/\bHexadecimal?\b/", $content) || preg_match("/\buse hex?\b/", $content) || preg_match("/\bCSS colours?\b/", $content)) {
+    if (preg_match("/\bHexadecimal?\b/", $content) || preg_match("/\buse hex?\b/",
+            $content) || preg_match("/\bCSS colours?\b/", $content)
+    ) {
         $error_fix = "<div class='less-correct'><span class='glyphicon glyphicon-ok-sign' aria-hidden='true'></span> Use Color Variable with <strong>.lib-css();</strong></div>";
     }
     if (preg_match("/\bUnits specified?\b/", $content)) {
@@ -77,17 +79,18 @@ function errorSuggestion($themeFile, $content)
         $action = 'new-line';
     }
 
-    $resolve = resolveButton($c_line, $themeFile, $action);
-
-    return $less_error_line . $error_fix . $resolve;
+    return $less_error_line . $error_fix;
 }
 
-function displayReport($reportFile)
+function displayReport($reportFile, $lines = 0)
 {
     if (is_file($reportFile)) {
         $errors = file_get_contents($reportFile);
         $contents = explode("\r\n", $errors);
-        $contents = array_slice($contents, 0, 1000);
+        if($lines > 0) {
+            $contents = array_slice($contents, 0, $lines);
+        }
+
 
         // Iterate through each Line
         foreach ($contents as $content) {
@@ -178,7 +181,7 @@ function displayReport($reportFile)
                 if ($criticalCount > 0) {
                     $expand = '';
                 }
-                echo "<div class='list-group-item list-group-item-warning' data-toggle='collapse' data-target='#sub_$i' aria-expanded='false' aria-controls='sub_$i'> <strong>Other Errors</strong> </div>";
+                echo "<div class='list-group-item list-group-item-warning other-errors' data-toggle='collapse' data-target='#sub_$i' aria-expanded='false' aria-controls='sub_$i'> <strong>Other Errors</strong> </div>";
                 echo "<ul class='list-group collapse $expand' id='sub_$i'>";
                 foreach ($cErr['normal'] as $nError) {
                     $suggestion = errorSuggestion($lessFile, $nError);
@@ -211,6 +214,21 @@ function getfilePath($themeFile)
     $themeName = end($themeFolder);
     $themeFile = str_replace($themeName, '', $themeFile);
     $lessFilePath = $_COOKIE['theme'] . $themeFile;
+    if(!is_file($lessFilePath)){
+        // if the file cannot be identified from theme file use the Magento_ or Netstarter_ folders to create the path. Add the vendors as necessary.
+        if (substr_count($themeFile, 'Magento_') > 0) {
+            $pathMagento = explode('Magento_', $themeFile);
+            if (!empty($pathMagento)) {
+                $lessFilePath = $_COOKIE['theme'] . '/Magento_' . $pathMagento[1];
+            }
+        }
+        if (substr_count($themeFile, 'Netstarter_') > 0) {
+            $pathNS = explode('Netstarter_', $themeFile);
+            if (!empty($pathNS)) {
+                $lessFilePath = $_COOKIE['theme'] . '/Netstarter_' . $pathNS[1];
+            }
+        }
+    }
     return $lessFilePath;
 }
 
@@ -219,13 +237,6 @@ function getLessErrorLine($themeFile, $line)
     $lessFileLine = getLessFile($themeFile);
     $error_line = trim($lessFileLine[$line]);
     return $error_line;
-}
-
-function resolveButton($line, $lessFile, $action)
-{
-    if (!empty($action) && !empty($line) && !empty($lessFile)) {
-        return "<div class='btn btn-warning btn-xs pull-right resolve-btn' property='$lessFile' rel='$line' resource='$action'>Resolve</div>";
-    }
 }
 
 function fixLESS($CodeLine)
@@ -239,31 +250,58 @@ function fixLESS($CodeLine)
     // Fix comment spacing
     if ((strpos(trim($Codeline), '//') === 0) && (substr(trim($Codeline), 0, 3) != '//  ')) {
         $tempString = substr($Codeline, 2);
-        $tempString = '//  ' . $tempString;
+        $tempString = '// ' . $tempString;
 
         // Add a line break to last comment line
         $tempString = trim($tempString);
         if (substr_count($tempString, '-') > 30) {
             $tempString = $tempString . "\r\n";
         }
-        $Codeline =  $tempString;
+        $Codeline = $tempString;
     } // -----------
 
     $css = cssProp($Codeline);
     if (!empty($css)) {
-        @$prop = trim($css[0]);
-        @$val = trim($css[1]);
+        $prop = trim($css[0]);
+        $val = trim($css[1]);
 
         // Remove 0px
-        if (strpos($val, ' 0px') !== FALSE) {
-            $val = str_replace(' 0px', ' 0', $val);
+        if (preg_match('/\b(0px)\b/', $val)) {
+            $val = str_replace('0px', '0', $val);
             $Codeline = "$prop: $val";
         } // -----------
 
+        // Add Background Mixin
+        if (($prop == 'background') && preg_match('/\b(url)\b/', $val)) {
+            $matches = [];
+            $url = '';
+            $p1 = '';
+            preg_match('/url\((.*)\)/', $val, $matches);
+            $full = $matches[0];
+            if ($full != 'url("@{url}")') {
+                if (!empty($matches[1])) {
+                    $url = trim($matches[1], "'../");
+                    $p1 = sprintf(".lib-url('%s');\n", $url);
+                }
+                if (!empty($full)) {
+                    $CodeLine = str_replace($full, 'url("@{url}")', $CodeLine);
+                }
+
+                $Codeline = $p1 . $CodeLine;
+            }
+
+            /**
+             * .lib-url('images/button_texture.svg');
+             * background: @color-white  url("@{url}") 0 20%;
+             */
+        }
+
         // Add .lib-css()
-        if ((substr_count($prop, '//') == 0) && (substr_count($val, '//') == 0) && (substr_count($val, '@') > 0) && (substr_count($prop, '@') == 0)) {
+        if ((substr_count($prop, '//') == 0) && (substr_count($val, '//') == 0) && (substr_count($val,
+                    '@') > 0) && (substr_count($prop, '@') == 0)
+        ) {
             $val = str_replace(";", '', $val);
-            if ($prop != 'background' || $prop != 'filter') {
+            if (!in_array($prop, ['background', 'filter'])) {
                 $Codeline = ".lib-css(" . $prop . ", " . $val . ");";
             }
         }

@@ -63,7 +63,7 @@ if (isset($_POST['runcmd'])) {
                         } ?>
                     </ul>
                 </li>
-                <li><a href="#" id="run_sniffer">Run Sniffer</a></li>
+                <li><span class="btn" id="run_sniffer">Run Sniffer</span></li>
             </ul>
         </div>
     </nav>
@@ -73,7 +73,7 @@ if (isset($_POST['runcmd'])) {
 
         //Read Report File
         $reportFile = $_COOKIE['path'] . "/dev/tests/static/report/less_report.txt";
-        displayReport($reportFile);
+        displayReport($reportFile,5000);
     }
     ?>
     <!-- Modal -->
@@ -116,12 +116,17 @@ if (isset($_POST['runcmd'])) {
         // AJAX run CodeSniffer
         $("#run_sniffer").click(function () {
             $("#run_sniffer").html("RUNNING!!!");
+            $(".modal-content").html("<img src='img/loader.gif' class='loader' />");
+            $('#fixErrors').modal('show');
             $.post("inc/ajax.php", {fn: "code_sniffer"})
                 .done(function (data) {
                     alert(data);
-                    if (data == 'Success'){
-                        $("#run_sniffer").html("Run Sniffer");
-                    }
+                    $(".modal-content").fadeOut(
+                        function(){
+                            $(".modal-content").html("<h2>Successfully Complete</h2><div class='btn btn-success' id='sniffer-ok'>Reload Page</div>").fadeIn();
+                        });
+                    $("#run_sniffer").html("Run Sniffer");
+                    location.reload();
                 });
         });
 
@@ -134,19 +139,10 @@ if (isset($_POST['runcmd'])) {
                 });
         });
 
-
-        // AJAX add new line LESS
-        $(".resolve-btn").click(function () {
-            var line = $(this).attr('rel');
-            var lessfile = $(this).attr('property');
-            $.post("inc/ajax.php", {fn: "resolve-error", line: line, less: lessfile})
-                .done(function (data) {
-                    alert(data);
-                });
-        });
-
+        // Fix errors
         $(".fix-btn").click(function(){
             var link = $(this).attr('href');
+            $(".modal-content").html("<img src='img/loader.gif' class='loader' />");
             $(".modal-content").load(link);
         });
 
